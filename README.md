@@ -68,3 +68,16 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+# How the Stack Works
+## React (Frontend)
+- **Purpose:** React is a JavaScript library for building user interfaces. It allows you to build reusable UI components nad manage the state of your application efficiently.
+- **Benefit:** React's component-based architecture allows you to build modular, reusable components, making it easier to manage complex UIs. For example, the `Login.js` and `Register.js` components handle user authentication, and you can easily reuse these components across different parts of your app.
+
+## Express (Backend)
+- **Purpose:** Express is a web framework for Node.js. It provides a robust set of features for building web and mobile applications, including routing, middleware, and handling HTTP requests.
+- **Benefit:** Express allows you to create RESTful APIs quickly and efficiently. The `auth.js` file defines routes for user authentication, which the frontend can interact with via HTTP requests.
+
+## Sequelize (ORM)
+- **Purpose:** Sequelize is an ORM (Object-Relational Mapping) library for Node.js. It abstracts SQL queries into JavaScript functions, allowing you to interact with your database using models.
+- **Benefit:** Sequelize simplifies database operations. For example, in `auth.js`, you can create a new user in the database with `User.create()` instead of writing raw SQL queries.
