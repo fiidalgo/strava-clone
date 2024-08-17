@@ -122,4 +122,24 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
+router.get('/analytics', auth, async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    try {
+        const runs = await db.Run.findAll({
+            where: {
+                userId: req.user.id,
+                date: {
+                    [db.Sequelize.Op.between]: [startDate, endDate]
+                }
+            },
+            order: [['date', 'ASC']]
+        });
+        res.json(runs);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;
