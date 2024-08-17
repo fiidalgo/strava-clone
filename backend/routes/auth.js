@@ -41,6 +41,7 @@ router.post('/register', [
       password: hashedPassword
     });
 
+    
     // Create a JWT payload contianing user's id
     const payload = {
       user: {
