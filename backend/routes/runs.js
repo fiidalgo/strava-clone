@@ -5,8 +5,65 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const db = require('../models');
 const auth = require('../middleware/auth'); // Middleware to authenticate the user (assuming you havea JWT auth middleware)
+const { calculateFitnessScore } = require('../utils/fitnessScore');
 
 const router = express.Router();
+
+const updateUserFitnessScore = async (userId) => {
+    console.log('Updating fitness score for user:', userId);
+
+    const runs = await db.Run.findAll({
+        where: { userId },
+        order: [['date', 'ASC']],
+    });
+
+    if (runs.length === 0) {
+        console.log('No runs found for this user.');
+        await db.FitnessScore.create({
+            userId,
+            date: new Date(),
+            score: 0,
+        });
+        return;
+    }
+
+    let fitnessScore = 0;
+    let previousRunDate = null;
+
+    for (const run of runs) {
+        const dailyFitnessScore = calculateFitnessScore([run]);
+
+        if (isNaN(dailyFitnessScore)) {
+            console.error('NaN encountered in dailyFitnessScore:', {
+                run,
+                dailyFitnessScore,
+            });
+            continue;
+        }
+
+        fitnessScore += dailyFitnessScore;
+
+        const existingScore = await db.FitnessScore.findOne({
+            where: {
+                userId,
+                date: run.date,
+            },
+        });
+
+        if (existingScore) {
+            existingScore.score = fitnessScore;
+            await existingScore.save();
+        } else {
+            await db.FitnessScore.create({
+                userId,
+                date: run.date,
+                score: fitnessScore,
+            });
+        }
+    }
+};
+
+
 
 // Route to log a new run
 router.post('/log', [
@@ -41,6 +98,9 @@ router.post('/log', [
             pace: paceString,
             userId: req.user.id
         });
+
+        await updateUserFitnessScore(req.user.id, date);
+
         res.json(run);
     } catch (err) {
         console.error(err.message);
@@ -97,6 +157,8 @@ router.put('/:id', [
         
         await run.save();
 
+        await updateUserFitnessScore(req.user.id, run.date);
+
         res.json(run);
     } catch (err) {
         console.error(err.message);
@@ -114,6 +176,8 @@ router.delete('/:id', auth, async (req, res) => {
         }
 
         await run.destroy();
+
+        await updateUserFitnessScore(req.user.id, run.date);
 
         res.json({ msg: 'Run deleted' });
     } catch (err) {

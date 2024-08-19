@@ -8,6 +8,7 @@ const dotenv = require('dotenv');
 const db = require('./config/database');
 const authRoutes = require('./routes/auth');
 const runRoutes = require('./routes/runs');
+const userRoutes = require('./routes/user');
 
 // Load env vars from .env file
 dotenv.config();
@@ -33,6 +34,7 @@ db.sync({ alter: true })
 // Define routes
 app.use('/api/auth', authRoutes); // Routes for user authentication (registration, login)
 app.use('/api/runs', runRoutes); // Routes for logging, viewing, updating, deleting runs
+app.use('/api/user', userRoutes); // Routes for viewing fitness score history
 
 // Define basic route for the root URL
 app.get('/', (req, res) => {

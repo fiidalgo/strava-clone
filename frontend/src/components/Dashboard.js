@@ -2,19 +2,21 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Analytics from './Analytics';
+import FitnessScoreChart from './FitnessScoreChart';
 
 function Dashboard() {
     const [runs, setRuns] = useState([]);
+    const [range, setRange] = useState('7D');
     const [selectedRun, setSelectedRun] = useState(null);
     const [date, setDate] = useState('');
     const [distance, setDistance] = useState('');
     const [time, setTime] = useState('');
-    const [range, setRange] = useState('7D');
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchRuns();
-    }, []);
+    }, [range]);
 
     const fetchRuns = async () => {
         try {
@@ -32,63 +34,65 @@ function Dashboard() {
         }
     };
 
-    const handleRunAdded = async (e) => {
+    const handleAddOrUpdateRun = async (e) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-
-            const newRun = {
-                date,
-                distance,
-                time,
-            };
-
-            let res;
-
+            const runData = { date, distance, time };
             if (selectedRun) {
-                // Update existing run
-                res = await axios.put(`http://localhost:5000/api/runs/${selectedRun.id}`, newRun, {
-                    headers: { 'x-auth-token': token }
+                // Update run
+                await axios.put(`http://localhost:5000/api/runs/${selectedRun.id}`, runData, {
+                    headers: {
+                        'x-auth-token': token
+                    }
                 });
-                setRuns(runs.map(run => run.id === selectedRun.id ? res.data : run));
+                setRuns(runs.map(run => run.id === selectedRun.id ? { ...run, ...runData } : run));
             } else {
                 // Add new run
-                res = await axios.post('http://localhost:5000/api/runs/log', newRun, {
-                    headers: { 'x-auth-token': token }
+                const res = await axios.post('http://localhost:5000/api/runs/log', runData, {
+                    headers: {
+                        'x-auth-token': token
+                    }
                 });
-                setRuns([...runs, res.data]);
+                setRuns([...runs, res.data])
             }
-
-            // Clear form
-            setSelectedRun(null);
-            setDate('');
-            setDistance('');
-            setTime('');
+            resetForm();
         } catch (err) {
-            console.error('Error adding/updating run:', err);
+            console.error('Error saving run:', err);
+            setError('Failed to save run. Please try again.');
         }
     };
 
-    const handleRunDeleted = async (runId) => {
-        const confirmDelete = window.confirm("Are you sure you want to delete this run?");
-        if (confirmDelete) {
-            try {
-                const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:5000/api/runs/${runId}`, {
-                    headers: { 'x-auth-token': token }
-                });
-                setRuns(runs.filter(run => run.id !== runId));
-            } catch (err) {
-                console.error('Error deleting run:', err);
-            }
-        }
+    const resetForm = () => {
+        setSelectedRun(null);
+        setDate('');
+        setDistance('');
+        setTime('');
     };
 
-    const handleSelectRunToUpdate = (run) => {
+    const handleUpdate = (run) => {
         setSelectedRun(run);
         setDate(run.date);
         setDistance(run.distance);
         setTime(run.time);
+    };
+
+    const handleDelete = async (runId) => {
+        const confirmDelete = window.confirm("Are you sure you want to delete this run?");
+        if (!confirmDelete) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`http://localhost:5000/api/runs/${runId}`, {
+                headers: {
+                    'x-auth-token': token
+                }
+            });
+            setRuns(runs.filter(run => run.id !== runId));
+        } catch (err) {
+            console.error('Error deleting run:', err);
+            setError('Failed to delete run. Please try again.');
+        }
     };
 
     const handleLogout = () => {
@@ -107,11 +111,19 @@ function Dashboard() {
                 <button onClick={() => setRange('6M')}>6M</button>
                 <button onClick={() => setRange('1Y')}>1Y</button>
             </div>
-            <Analytics range={range} runs={runs} />
+           
+            <div>
+                <h3>Activity Analytics</h3>
+                <Analytics range={range} runs={runs} />
+            </div>
+
+            <div>
+                <FitnessScoreChart range={range} />
+            </div>
 
             <div>
                 <h2>{selectedRun ? 'Update Run' : 'Add New Run'}</h2>
-                <form onSubmit={handleRunAdded}>
+                <form onSubmit={handleAddOrUpdateRun}>
                     <input
                         type="date"
                         value={date}
@@ -134,19 +146,24 @@ function Dashboard() {
                     />
                     <button type="submit">{selectedRun ? 'Update Run' : 'Add Run'}</button>
                 </form>
+                {error && <p>{error}</p>}
             </div>
 
             <div>
                 <h3>Your Runs:</h3>
                 <ul>
-                    {runs.map(run => (
+                {Array.isArray(runs) && runs.length > 0 ? (
+                    runs.map(run => (
                         <li key={run.id}>
                             {run.date} - {run.distance} mi - {run.time} - {run.pace} min/mi
-                            <button onClick={() => handleSelectRunToUpdate(run)}>Update</button>
-                            <button onClick={() => handleRunDeleted(run.id)}>Delete</button>
+                            <button onClick={() => handleUpdate(run)}>Update</button>
+                            <button onClick={() => handleDelete(run.id)}>Delete</button>
                         </li>
-                    ))}
-                </ul>
+                    ))
+                ) : (
+                    <p>No runs available.</p>
+                )}
+            </ul>
             </div>
         </div>
     );

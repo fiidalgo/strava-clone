@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     password: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    currentFitnessScore: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 0
     }
   });
 
@@ -26,6 +31,11 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'userId', // Foreign key in the Post table referencing the User
       as: 'runs' // Alias for accessing user's runs
     });
+    // One-to-many relationship: User has many FitnessScores
+    User.hasMany(models.FitnessScore, {
+      foreignKey: 'userId', // Foreign key in FitnessScore table that references the User
+      as: 'fitnessScores' // Alias for accessing a user's fitness scores
+    })
   };
 
   // Return User model so it can be used in other parts of app
